@@ -18,11 +18,7 @@ def join_exames():
     exames.columns = ['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                       'Analito', 'Resultado', 'Unidade', 'Valor_Referencia',
                       'Hospital', 'ID_Atendimento']
-
-    exames.to_csv('dados/exames.csv', mode='w+', index=False,
-                  columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
-                           'Analito', 'Resultado', 'Unidade',
-                           'Valor_Referencia', 'Hospital'])
+    return exames
 
 
 def join_pacientes():
@@ -43,16 +39,36 @@ def join_pacientes():
     pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
                          'Município', 'CEP', 'Hospital']
 
-    # filter values
-
-    # write csv
-    pacientes.to_csv('dados/pacientes.csv', mode='w+', index=False,
-                     columns=['ID_Paciente', 'Sexo',
-                              'Ano_Nascimento', 'Hospital'])
+    return pacientes
 
 
 if __name__ == "__main__":
-    join_exames()
-    join_pacientes()
+
+    print("Starting processing patients")
+
+    pac = join_pacientes()
     # padronize_data('dados/exames.csv', 'dados/exames_p.csv')
     # remove_broken_enconding('dados/pacientes.csv')
+
+    pac.to_csv('dados/pacientes.csv', mode='w+', index=False,
+               columns=['ID_Paciente', 'Sexo',
+                        'Ano_Nascimento', 'Hospital'])
+    print("Finished writing pacientes.csv")
+
+    print("Starting processing exames")
+    ex = join_exames()
+
+    print("Joined Exames")
+    ex = ex.dropna(subset=['Exame'])
+
+    # Only takes exams related with COVID19
+    ex = ex[ex.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True]
+
+    print("Filtered exam types")
+
+    ex.to_csv('dados/exames.csv', mode='w+', index=False,
+              columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
+                       'Analito', 'Resultado', 'Unidade',
+                       'Valor_Referencia', 'Hospital'])
+
+    print("Finished writing exames.csv")

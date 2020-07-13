@@ -1,3 +1,5 @@
 __pycache__
 dados_originais
 dados
+*.ipynb
+*.tar
