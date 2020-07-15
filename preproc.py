@@ -1,4 +1,5 @@
 import pandas as pd
+from collections import namedtuple
 
 
 def join_exames():
@@ -58,6 +59,94 @@ def join_pacientes():
     print("Finished writing pacientes.csv")
 
 
+def create_input():
+    # THIS IS A FUCKING MESS
+
+    pac = pd.read_csv("dados/pacientes.csv")
+    exames = pd.read_csv("dados/exames.csv")
+
+    # Define o tipo de dado
+    Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
+
+    # Construir dict com sexo e nasc
+    sexo_e_nascimento = {}
+    for index, row in pac.iterrows():
+        if sexo_e_nascimento.get(row['ID_Paciente']) is None:
+            sexo_e_nascimento[row['ID_Paciente']] = (
+                row['Sexo'], row['Ano_Nascimento'])
+        else:
+            print("porra tem conflito de ID")
+
+    # Construct Exam dict
+    exames_dict = {}
+    for index, row in exames.iterrows():
+        val = exames_dict.get(row['ID_Paciente'])
+        if val is None:
+            val = [
+                Exame(row['Exame'],
+                      row['Analito'],
+                      row['Resultado'],
+                      row['Unidade'],
+                      row['Valor_Referencia'],
+                      row['Data_Coleta'])
+            ]
+        else:
+            val.append(
+                Exame(row['Exame'],
+                      row['Analito'],
+                      row['Resultado'],
+                      row['Unidade'],
+                      row['Valor_Referencia'],
+                      row['Data_Coleta'])
+            )
+        exames_dict[row['ID_Paciente']] = val
+
+    # Constroi fields
+
+    fields = ["ID_Paciente", "Sexo", "Ano_Nasc"]
+    for n in exames.Exame.unique():
+        fields += ['['+n+']_analito',
+                   '['+n+']_resultado',
+                   '['+n+']_unidade',
+                   '['+n+']_datacol',
+                   '['+n+']_valref'
+                   ]
+
+    # Construct data
+
+    new_rows = []
+    for pac_id in sexo_e_nascimento.keys():
+
+        # initialize empty dict
+        row = dict.fromkeys(fields)
+
+        # recover pacient info
+        pac_info = sexo_e_nascimento[pac_id]
+
+        row['ID_Paciente'] = pac_id
+        row['Sexo'] = pac_info[0]
+        row['Ano_Nasc'] = pac_info[1]
+
+        # recover exams (if there are any)
+        pac_exames = exames_dict.get(pac_id)
+
+        if pac_exames is not None:
+            for ex in pac_exames:
+                row['['+ex.nome+']_analito'] = ex.analito
+                row['['+ex.nome+']_resultado'] = ex.resultado
+                row['['+ex.nome+']_unidade'] = ex.unidade
+                row['['+ex.nome+']_datacol'] = ex.data
+                row['['+ex.nome+']_valref'] = ex.valref
+
+            # Only appends pacients that have at least one of the desired exams
+            new_rows.append(row)
+
+    pd.DataFrame(new_rows, columns=fields).to_csv(
+        'dados/input.csv', mode='w+', index=False)
+
+    print("Finished writing input")
+
+
 if __name__ == "__main__":
 
     print("Starting processing patients")
@@ -67,7 +156,8 @@ if __name__ == "__main__":
     join_exames()
 
     # create actual input for the networks
-
+    print("Creating input csv")
+    create_input()
     # generate_igg_input()
     # generate_iga_input()
     # generate_PCR_input()
