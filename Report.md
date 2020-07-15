@@ -4,8 +4,9 @@
 
 ## Nome dos autores
 
-Caio Fontes          - 10692061
-Eduardo Laurentino   - xxxxxxxx
+Caio Andrade    -  9797232
+
+Caio Fontes     - 10692061
 
 ## Resumo
 
