@@ -65,3 +65,9 @@ if __name__ == "__main__":
 
     print("Starting processing exames")
     join_exames()
+
+    # create actual input for the networks
+
+    # generate_igg_input()
+    # generate_iga_input()
+    # generate_PCR_input()
