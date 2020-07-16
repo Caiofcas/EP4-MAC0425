@@ -1,6 +1,10 @@
 import pandas as pd
 from collections import namedtuple
 
+Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
+
+# ---- Auxiliary Functions ----------------------
+
 
 def fix_encoding(string):
     if type(string) != str:
@@ -17,6 +21,9 @@ def fix_encoding(string):
         .replace('í˘', 'â') \
         .replace('í', 'Ã') \
         .replace('í', 'Á')
+
+
+# ---- Join Data Functions ----------------------
 
 
 def join_exames():
@@ -86,34 +93,22 @@ def join_pacientes():
     print("Finished writing pacientes.csv")
 
 
-def create_input():
+# ---- Input Creation Functions -----------------
 
-    print("Creating input csv")
-
-    # THIS IS A FUCKING MESS
-
-    pac = pd.read_csv("dados/pacientes.csv")
-    exames = pd.read_csv("dados/exames.csv")
-
-    print("Load pacientes and exames data")
-
-    # Define o tipo de dado
-    Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
-
-    # Construir dict com sexo e nasc
-    sexo_e_nascimento = {}
-    for index, row in pac.iterrows():
-        if sexo_e_nascimento.get(row['ID_Paciente']) is None:
-            sexo_e_nascimento[row['ID_Paciente']] = (
-                row['Sexo'], row['Ano_Nascimento'])
+def pac_dict(df):
+    d = {}
+    for _, row in df.iterrows():
+        if d.get(row['ID_Paciente']) is None:
+            d[row['ID_Paciente']] = (row['Sexo'], row['Ano_Nascimento'])
         else:
             print("porra tem conflito de ID")
+    return d
 
-    print("Processed pacientes")
-    # Construct Exam dict
-    exames_dict = {}
-    for index, row in exames.iterrows():
-        val = exames_dict.get(row['ID_Paciente'])
+
+def exam_dict(df):
+    d = {}
+    for _, row in df.iterrows():
+        val = d.get(row['ID_Paciente'])
         if val is None:
             val = [
                 Exame(row['Exame'],
@@ -132,20 +127,49 @@ def create_input():
                       row['Valor_Referencia'],
                       row['Data_Coleta'])
             )
-        exames_dict[row['ID_Paciente']] = val
+        d[row['ID_Paciente']] = val
 
-    print("Processed exames")
+    return d
 
-    # Constroi fields
+
+def get_fields(exames):
 
     fields = ["ID_Paciente", "Sexo", "Ano_Nasc"]
-    for name in exames.Exame.unique():
+    for name in exames:
         fields += ['['+name+']_analito',
                    '['+name+']_resultado',
                    '['+name+']_unidade',
                    '['+name+']_datacol',
                    '['+name+']_valref'
                    ]
+
+    return fields
+
+
+def create_input():
+
+    print("Creating input csv")
+
+    pac = pd.read_csv("dados/pacientes.csv")
+    exames = pd.read_csv("dados/exames.csv")
+
+    print("Load pacientes and exames data")
+
+    # Construir dict com sexo e nasc
+
+    sexo_e_nascimento = pac_dict()
+
+    print("Processed pacientes")
+
+    # Construct Exam dict
+
+    exames_dict = exam_dict()
+
+    print("Processed exames")
+
+    # Constroi fields
+
+    fields = get_fields(exames.Exame.unique())
 
     # Construct data
 
