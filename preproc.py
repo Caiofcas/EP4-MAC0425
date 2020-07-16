@@ -58,6 +58,37 @@ def join_exames():
 
     print("Fixed enconding in Exames")
 
+    exames.loc[(exames.Exame == 'COVID-19-Teste Rápido (IgM e IgG), soro') |
+               (exames.Exame == 'Teste rápido COVID19 IgG/IgM') |
+               (exames.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM') |
+               (exames.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO'),
+               'Exame'] = 'Teste rápido COVID19 IgG IgM'
+
+    exames.loc[(exames.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
+               (exames.Exame == 'HMVSC-AFIP PCR COVID 19') |
+               (exames.Exame == 'COVID-19-PCR para SARS-COV-2, Vários Materiais (Fleury)'),
+               'Exame'] = 'COVID19 PCR'
+
+    exames.loc[(exames.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM') |
+               (exames.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro'),
+               'Exame'] = 'Soro COVID19 IgG IgM'
+
+    exames.loc[(exames.Exame == 'COVID-19, anticorpos IGA e IGG, soro'),
+               'Exame'] = 'Soro COVID19 IgA IgG'
+
+    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgG, soro'),
+               'Exame'] = 'Soro COVID19 IgG'
+
+    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgA, soro') |
+               (exames.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19'),
+               'Exame'] = 'Soro COVID19 IgA'
+
+    exames.loc[exames.Exame == 'COVID19, ANTICORPOS IgM, soro',
+               'Exame'] = 'Soro COVID19 IgM'
+
+    # quase certeza que isso tá escrito errado
+    print("Standartized exam types")
+
     exames.to_csv('dados/exames.csv', mode='w+', index=False,
                   columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                            'Analito', 'Resultado', 'Unidade',
