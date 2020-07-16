@@ -20,6 +20,9 @@ def fix_encoding(string):
 
 
 def join_exames():
+
+    print("Starting processing exames")
+
     fleury_e_big = pd.read_csv(
         'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv',
         sep='|', encoding='latin1')
@@ -57,6 +60,9 @@ def join_exames():
 
 
 def join_pacientes():
+
+    print("Starting processing patients")
+
     # read csv files
     einstein_p_big = pd.read_csv(
         'dados_originais/einstein_full_dataset_paciente.csv', sep='|')
@@ -81,10 +87,15 @@ def join_pacientes():
 
 
 def create_input():
+
+    print("Creating input csv")
+
     # THIS IS A FUCKING MESS
 
     pac = pd.read_csv("dados/pacientes.csv")
     exames = pd.read_csv("dados/exames.csv")
+
+    print("Load pacientes and exames data")
 
     # Define o tipo de dado
     Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
@@ -98,6 +109,7 @@ def create_input():
         else:
             print("porra tem conflito de ID")
 
+    print("Processed pacientes")
     # Construct Exam dict
     exames_dict = {}
     for index, row in exames.iterrows():
@@ -121,6 +133,8 @@ def create_input():
                       row['Data_Coleta'])
             )
         exames_dict[row['ID_Paciente']] = val
+
+    print("Processed exames")
 
     # Constroi fields
 
@@ -162,23 +176,16 @@ def create_input():
             # Only appends pacients that have at least one of the desired exams
             new_rows.append(row)
 
+    print("Joined data")
+
     pd.DataFrame(new_rows, columns=fields).to_csv(
         'dados/input.csv', mode='w+', index=False)
 
-    print("Finished writing input")
+    print("Finished writing input.csv")
 
 
 if __name__ == "__main__":
 
-    print("Starting processing patients")
     join_pacientes()
-
-    print("Starting processing exames")
     join_exames()
-
-    # create actual input for the networks
-    print("Creating input csv")
     create_input()
-    # generate_igg_input()
-    # generate_iga_input()
-    # generate_PCR_input()
