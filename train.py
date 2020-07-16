@@ -5,12 +5,10 @@ import torch
 class Train():
     def __init__(self, net, lr, x_train, x_test, y_test, epochs):
 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-        self.net = net.to(device)
-        self.x_train = x_train.to(device)
-        self.x_test = x_test.to(device)
-        self.y_test = y_test.to(device)
+        self.net = net
+        self.x_train = x_train
+        self.x_test = x_test
+        self.y_test = y_test
         self.epochs = epochs
         self.criterion = torch.nn.BCELoss()
         self.optimizer = torch.optim.Adam(net.parameters(), lr=lr)
@@ -22,6 +20,13 @@ class Train():
         return (y_true == predicted).sum().float() / len(y_true)
 
     def train(self):
+        # Falta alguma implementação de k-fold
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        self.net = self.net.to(device)
+        self.x_train = self.x_train.to(device)
+        self.x_test = self.x_test.to(device)
+        self.y_test = self.y_test.to(device)
         for epoch in range(self.epochs):
             y_pred = self.net(self.x_train)
             y_pred = torch.squeeze(y_pred)
