@@ -126,7 +126,8 @@ def join_pacientes():
 
 # ---- Input Creation Functions -----------------
 
-def pac_dict(df):
+def pac_dict(filename="dados/pacientes.csv"):
+    df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
         if d.get(row['ID_Paciente']) is None:
@@ -136,7 +137,8 @@ def pac_dict(df):
     return d
 
 
-def exam_dict(df):
+def exam_dict(filename="dados/exames.csv"):
+    df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
         val = d.get(row['ID_Paciente'])
@@ -160,6 +162,8 @@ def exam_dict(df):
             )
         d[row['ID_Paciente']] = val
 
+        # gambiarration
+    d['fields'] = df.Exame.unique()
     return d
 
 
@@ -181,11 +185,6 @@ def create_input():
 
     print("Creating input csv")
 
-    pac = pd.read_csv("dados/pacientes.csv")
-    exames = pd.read_csv("dados/exames.csv")
-
-    print("Load pacientes and exames data")
-
     # Construir dict com sexo e nasc
 
     sexo_e_nascimento = pac_dict()
@@ -200,7 +199,7 @@ def create_input():
 
     # Constroi fields
 
-    fields = get_fields(exames.Exame.unique())
+    fields = get_fields(exames_dict['fields'])
 
     # Construct data
 
