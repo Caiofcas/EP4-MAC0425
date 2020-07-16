@@ -2,6 +2,23 @@ import pandas as pd
 from collections import namedtuple
 
 
+def fix_encoding(string):
+    if type(string) != str:
+        return string
+
+    return string \
+        .replace('ĂĄ', 'á') \
+        .replace('ĂŞ', 'ê') \
+        .replace('Ăł', 'ó') \
+        .replace('ĂŁ', 'ã') \
+        .replace('ĂŠ', 'é') \
+        .replace('Ă§', 'ç') \
+        .replace('Ă', 'í')  \
+        .replace('í˘', 'â') \
+        .replace('í', 'Ã') \
+        .replace('í', 'Á')
+
+
 def join_exames():
     fleury_e_big = pd.read_csv(
         'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv',
@@ -26,6 +43,10 @@ def join_exames():
     exames = exames[exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True]
 
     print("Filtered exam types")
+
+    exames = exames.applymap(fix_encoding)
+
+    print("Fixed enconding in Exames")
 
     exames.to_csv('dados/exames.csv', mode='w+', index=False,
                   columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
@@ -104,12 +125,12 @@ def create_input():
     # Constroi fields
 
     fields = ["ID_Paciente", "Sexo", "Ano_Nasc"]
-    for n in exames.Exame.unique():
-        fields += ['['+n+']_analito',
-                   '['+n+']_resultado',
-                   '['+n+']_unidade',
-                   '['+n+']_datacol',
-                   '['+n+']_valref'
+    for name in exames.Exame.unique():
+        fields += ['['+name+']_analito',
+                   '['+name+']_resultado',
+                   '['+name+']_unidade',
+                   '['+name+']_datacol',
+                   '['+name+']_valref'
                    ]
 
     # Construct data
