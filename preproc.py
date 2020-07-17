@@ -20,8 +20,18 @@ def fix_encoding(string):
         .replace('Ă', 'í')  \
         .replace('í˘', 'â') \
         .replace('í', 'Ã') \
-        .replace('í', 'Á')
+        .replace('í', 'Á') \
+        .replace('í', 'í')
 
+
+def split_exam(row, analito_options, new_exams, default):
+    for i in range(len(analito_options)):
+        if analito_options[i] in row['Analito']:
+            row['Exame'] = new_exams[i]
+            return row
+
+    row['Exame'] = default
+    return row
 
 # ---- Join Data Functions ----------------------
 
@@ -88,6 +98,33 @@ def join_exames():
 
     # quase certeza que isso tá escrito errado
     print("Standartized exam types")
+
+    cond = exames.Exame.str.match('Soro COVID19 IgG IgM') == True
+
+    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
+                                          args=[['IgG', 'IgM'],
+                                                ['Soro COVID19 IgG',
+                                                 'Soro COVID19 IgM'],
+                                                'Soro COVID19'])
+
+    cond = exames.Exame.str.match('Soro COVID19 IgA IgG') == True
+
+    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
+                                          args=[['IgA e IgG', 'IgA', 'IgG'],
+                                                ['Soro COVID19 IgA e IgG',
+                                                 'Soro COVID19 IgA',
+                                                 'Soro COVID19 IgG'],
+                                                'Soro COVID19'])
+
+    cond = exames.Exame.str.match('Teste rápido COVID19 IgG IgM') == True
+
+    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
+                                          args=[['IgM/IgG', 'IgG', 'IgM'],
+                                                ['Teste rápido COVID19 IgG e IgM',
+                                                 'Teste rápido COVID19 IgG',
+                                                 'Teste rápido COVID19 IgM'],
+                                                'Teste rápido COVID19'])
+    print("Split compounded Exams")
 
     exames.to_csv('dados/exames.csv', mode='w+', index=False,
                   columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
