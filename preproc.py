@@ -6,6 +6,14 @@ Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 # ---- Auxiliary Functions ----------------------
 
 
+def is_float_try(str):
+    try:
+        float(str)
+        return True
+    except ValueError:
+        return False
+
+
 def fix_encoding(string):
     if type(string) != str:
         return string
@@ -218,6 +226,43 @@ def get_fields(exames):
     return fields
 
 
+def get_pac_row(info, exams):
+    row = {}
+#     row['ID_Paciente'] = p_id
+    row['Sexo'] = info[0]
+    row['Ano_Nasc'] = info[1]
+
+    for ex in exams:
+        if is_float_try(ex.resultado):
+            key = ex.nome + ' NUM'
+            row[key] = float(ex.resultado)
+        else:
+            key = ex.nome + ' BOOL'
+            row[key] = exam_result(ex.resultado)
+
+    return row
+
+
+def exam_result(resultado):
+    #     print(exam)
+    res = 'xxxxx'
+    if resultado == 'Indeterminado' \
+            or resultado == 'NOVA COLETA' \
+            or resultado == 'Inconclusivo':
+        res = 'INDETERMINADO'
+    elif resultado == 'Não reagente' \
+            or resultado == 'Não Reagente' \
+            or resultado == 'Reagente Fraco':
+        res = 'NEGATIVO'
+    elif resultado == 'Reagente'\
+            or resultado == 'Detectado':
+        res = 'POSITIVO'
+    else:
+        if resultado != ' ' and resultado != '*':
+            print('exam_result- Valor inesperado: ', resultado)
+    return res
+
+
 def create_input():
 
     print("Creating input csv")
@@ -236,40 +281,22 @@ def create_input():
 
     # Constroi fields
 
-    fields = get_fields(exames_dict['fields'])
+    # fields = get_fields(exames_dict['fields'])
 
     # Construct data
 
     new_rows = []
     for pac_id in sexo_e_nascimento.keys():
 
-        # initialize empty dict
-        row = dict.fromkeys(fields)
-
-        # recover pacient info
         pac_info = sexo_e_nascimento[pac_id]
-
-        row['ID_Paciente'] = pac_id
-        row['Sexo'] = pac_info[0]
-        row['Ano_Nasc'] = pac_info[1]
-
-        # recover exams (if there are any)
         pac_exames = exames_dict.get(pac_id)
 
         if pac_exames is not None:
-            for ex in pac_exames:
-                row['['+ex.nome+']_analito'] = ex.analito
-                row['['+ex.nome+']_resultado'] = ex.resultado
-                row['['+ex.nome+']_unidade'] = ex.unidade
-                row['['+ex.nome+']_datacol'] = ex.data
-                row['['+ex.nome+']_valref'] = ex.valref
-
-            # Only appends pacients that have at least one of the desired exams
-            new_rows.append(row)
+            new_rows.append(get_pac_row(pac_info, pac_exames))
 
     print("Joined data")
 
-    pd.DataFrame(new_rows, columns=fields).to_csv(
+    pd.DataFrame(new_rows).to_csv(
         'dados/input.csv', mode='w+', index=False)
 
     print("Finished writing input.csv")
