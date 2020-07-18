@@ -82,7 +82,7 @@ def join_exames():
                (exames.Exame == 'Teste rápido COVID19 IgG/IgM') |
                (exames.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM') |
                (exames.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO'),
-               'Exame'] = 'Teste rápido COVID19 IgG IgM'
+               'Exame'] = 'COVID19 IgG IgM'
 
     exames.loc[(exames.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
                (exames.Exame == 'HMVSC-AFIP PCR COVID 19') |
@@ -91,49 +91,40 @@ def join_exames():
 
     exames.loc[(exames.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM') |
                (exames.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro'),
-               'Exame'] = 'Soro COVID19 IgG IgM'
+               'Exame'] = 'COVID19 IgG IgM'
 
     exames.loc[(exames.Exame == 'COVID-19, anticorpos IGA e IGG, soro'),
-               'Exame'] = 'Soro COVID19 IgA IgG'
+               'Exame'] = 'COVID19 IgA IgG'
 
     exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgG, soro'),
-               'Exame'] = 'Soro COVID19 IgG'
+               'Exame'] = 'COVID19 IgG'
 
     exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgA, soro') |
                (exames.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19'),
-               'Exame'] = 'Soro COVID19 IgA'
+               'Exame'] = 'COVID19 IgA'
 
     exames.loc[exames.Exame == 'COVID19, ANTICORPOS IgM, soro',
-               'Exame'] = 'Soro COVID19 IgM'
+               'Exame'] = 'COVID19 IgM'
 
     # quase certeza que isso tá escrito errado
     print("Standartized exam types")
 
-    cond = exames.Exame.str.match('Soro COVID19 IgG IgM') == True
+    cond = exames.Exame.str.match('COVID19 IgG IgM') == True
 
     exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
                                           args=[['IgG', 'IgM'],
-                                                ['Soro COVID19 IgG',
-                                                 'Soro COVID19 IgM'],
-                                                'Soro COVID19'])
+                                                ['COVID19 IgG',
+                                                 'COVID19 IgM'],
+                                                'COVID19'])
 
-    cond = exames.Exame.str.match('Soro COVID19 IgA IgG') == True
+    cond = exames.Exame.str.match('COVID19 IgA IgG') == True
 
     exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
                                           args=[['IgA e IgG', 'IgA', 'IgG'],
-                                                ['Soro COVID19 IgA e IgG',
-                                                 'Soro COVID19 IgA',
-                                                 'Soro COVID19 IgG'],
-                                                'Soro COVID19'])
-
-    cond = exames.Exame.str.match('Teste rápido COVID19 IgG IgM') == True
-
-    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
-                                          args=[['IgM/IgG', 'IgG', 'IgM'],
-                                                ['Teste rápido COVID19 IgG e IgM',
-                                                 'Teste rápido COVID19 IgG',
-                                                 'Teste rápido COVID19 IgM'],
-                                                'Teste rápido COVID19'])
+                                                ['COVID19 IgA e IgG',
+                                                 'COVID19 IgA',
+                                                 'COVID19 IgG'],
+                                                'COVID19'])
     print("Split compounded Exams")
 
     exames.to_csv('dados/exames.csv', mode='w+', index=False,
