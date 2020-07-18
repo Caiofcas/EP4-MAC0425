@@ -254,7 +254,7 @@ def exam_result(resultado):
     matchPositivo = r'reagente|detectado.*|detectável|evidência'
     matchNumerico = r'(\d)+(,|\.)(\d)+'
     matchLixo=r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}'
-    tests = (['NEGATIVO', matchNegativo], ['INCONCLUSIVO', matchInconclusivo], \
+    tests = (['INCONCLUSIVO', matchInconclusivo],['NEGATIVO', matchNegativo],  \
         ['POSITIVO', matchPositivo], ['numerico', matchNumerico], \
             ['lixo', matchLixo])
 
