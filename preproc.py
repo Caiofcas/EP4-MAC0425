@@ -7,9 +7,10 @@ Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 # ---- Auxiliary Functions ----------------------
 
 
-def is_float_try(str):
+def is_float_try(entry):
+    entry.replace(',', '.')
     try:
-        float(str)
+        float(entry)
         return True
     except ValueError:
         return False
