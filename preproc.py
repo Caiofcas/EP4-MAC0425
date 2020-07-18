@@ -1,5 +1,6 @@
 import pandas as pd
 from collections import namedtuple
+import re
 
 Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 
@@ -29,8 +30,8 @@ def fix_encoding(string):
         .replace('í˘', 'â') \
         .replace('í', 'Ã') \
         .replace('í', 'Á') \
-        .replace('í', 'í')
-
+        .replace('í', 'í') \
+        .replace('í­', 'í') # Tem um caracter escondido aqui
 
 def split_exam(row, analito_options, new_exams, default):
     for i in range(len(analito_options)):
@@ -245,21 +246,35 @@ def get_pac_row(info, exams):
 
 def exam_result(resultado):
     #     print(exam)
+    DEBUG = True
     res = 'xxxxx'
-    if resultado == 'Indeterminado' \
-            or resultado == 'NOVA COLETA' \
-            or resultado == 'Inconclusivo':
-        res = 'INDETERMINADO'
-    elif resultado == 'Não reagente' \
-            or resultado == 'Não Reagente' \
-            or resultado == 'Reagente Fraco':
-        res = 'NEGATIVO'
-    elif resultado == 'Reagente'\
-            or resultado == 'Detectado':
-        res = 'POSITIVO'
-    else:
-        if resultado != ' ' and resultado != '*':
-            print('exam_result- Valor inesperado: ', resultado)
+    matchNegativo = r'negativo|não|fraco|sem evidência|indetectável'
+    # Esse caso ta pegando aquele textão absurdo, melhor filtrar
+    matchInconclusivo = r'indeterminado|inconclusivo|repetir o teste|aguardar|a critério|possível'
+    matchPositivo = r'reagente|detectado.*|detectável|evidência'
+    matchNumerico = r'(\d)+(,|\.)(\d)+'
+    matchLixo=r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}'
+    tests = (['NEGATIVO', matchNegativo], ['INCONCLUSIVO', matchInconclusivo], \
+        ['POSITIVO', matchPositivo], ['numerico', matchNumerico], \
+            ['lixo', matchLixo])
+
+    for test in tests: 
+        regexResultado = re.search(test[1], resultado, flags=re.IGNORECASE)
+        if regexResultado is not None:
+            if test[0] != 'lixo' and test[1] != 'numerico':
+                res = test[0]
+            if DEBUG:
+                try:
+                    file_to_open = test[0] + ".txt"
+                    file_target = open(file_to_open, "a")
+                    file_target.write(resultado)
+                    file_target.write('\n')
+                    file_target.close()
+                except:
+                    print('erro na hora de abrir o arquivo')
+            break #Interrompe os testes por ter classificado a palavra
+    
+    print('Palavra {} classificada como {}'.format(resultado, res))
     return res
 
 
