@@ -8,9 +8,8 @@ Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 
 
 def is_float_try(entry):
-    entry.replace(',', '.')
     try:
-        float(entry)
+        float(entry.replace(',', '.'))
         return True
     except ValueError:
         return False
@@ -32,15 +31,16 @@ def fix_encoding(string):
         .replace('í', 'Ã') \
         .replace('í', 'Á') \
         .replace('í', 'í') \
-        .replace('í­', 'í') # Tem um caracter escondido aqui
+        .replace('í­', 'í')  # Tem um caracter escondido aqui
 
-def split_exam(row, analito_options, new_exams, default):
+
+def split_exam(row, analito_options, new_exams):
     for i in range(len(analito_options)):
         if analito_options[i] in row['Analito']:
             row['Exame'] = new_exams[i]
             return row
 
-    row['Exame'] = default
+    row['Exame'] = None
     return row
 
 # ---- Join Data Functions ----------------------
@@ -114,17 +114,19 @@ def join_exames():
     exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
                                           args=[['IgG', 'IgM'],
                                                 ['COVID19 IgG',
-                                                 'COVID19 IgM'],
-                                                'COVID19'])
+                                                 'COVID19 IgM']])
 
     cond = exames.Exame.str.match('COVID19 IgA IgG') == True
 
     exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
                                           args=[['IgA e IgG', 'IgA', 'IgG'],
-                                                ['COVID19 IgA e IgG',
+                                                [None,
                                                  'COVID19 IgA',
-                                                 'COVID19 IgG'],
-                                                'COVID19'])
+                                                 'COVID19 IgG']])
+
+    # exames = exames[exames.Exame != None]
+    exames = exames.dropna(subset=['Exame'])
+
     print("Split compounded Exams")
 
     exames.to_csv('dados/exames.csv', mode='w+', index=False,
@@ -220,37 +222,42 @@ def get_fields(exames):
 
 
 def get_pac_row(info, exams):
+    res2num = {
+        'POSITIVO': 1,
+        'INCONCLUSIVO': 0,
+        'NEGATIVO': -1
+    }
     row = {}
-#     row['ID_Paciente'] = p_id
     row['Sexo'] = info[0]
     row['Ano_Nasc'] = info[1]
 
     for ex in exams:
+        print(ex.nome)
         if is_float_try(ex.resultado):
             key = ex.nome + ' NUM'
             row[key] = float(ex.resultado)
         else:
             key = ex.nome + ' BOOL'
-            row[key] = exam_result(ex.resultado)
+            row[key] = res2num.setdefault(exam_result(ex.resultado), 'XXXX')
 
     return row
 
 
 def exam_result(resultado):
     #     print(exam)
-    DEBUG = True
+    DEBUG = False
     res = 'xxxxx'
     matchNegativo = r'negativo|não|fraco|sem evidência|indetectável'
     # Esse caso ta pegando aquele textão absurdo, melhor filtrar
     matchInconclusivo = r'indeterminado|inconclusivo|repetir o teste|aguardar|a critério|possível'
     matchPositivo = r'reagente|detectado.*|detectável|evidência'
     matchNumerico = r'(\d)+(,|\.)(\d)+'
-    matchLixo=r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}'
-    tests = (['INCONCLUSIVO', matchInconclusivo],['NEGATIVO', matchNegativo],  \
-        ['POSITIVO', matchPositivo], ['numerico', matchNumerico], \
-            ['lixo', matchLixo])
+    matchLixo = r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}'
+    tests = (['INCONCLUSIVO', matchInconclusivo], ['NEGATIVO', matchNegativo],
+             ['POSITIVO', matchPositivo], ['numerico', matchNumerico],
+             ['lixo', matchLixo])
 
-    for test in tests: 
+    for test in tests:
         regexResultado = re.search(test[1], resultado, flags=re.IGNORECASE)
         if regexResultado is not None:
             if test[0] != 'lixo' and test[1] != 'numerico':
@@ -264,8 +271,8 @@ def exam_result(resultado):
                     file_target.close()
                 except:
                     print('erro na hora de abrir o arquivo')
-            break #Interrompe os testes por ter classificado a palavra
-    
+            break  # Interrompe os testes por ter classificado a palavra
+
     print('Palavra {} classificada como {}'.format(resultado, res))
     return res
 
