@@ -80,7 +80,7 @@ def split_exam(exam, analito_matches, names):
     for i in range(len(analito_matches)):
         if analito_matches[i] in exam['Analito']:
             exam['Exame'] = names[i]
-            return row
+            return exam
 
     exam['Exame'] = float('nan')
     return exam
