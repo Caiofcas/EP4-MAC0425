@@ -17,23 +17,41 @@ H_PAC = 'dados_originais/hsl_patient_1.csv'
 F_EXAM = 'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv'
 E_EXAM = 'dados_originais/einstein_full_dataset_exames.csv'
 H_EXAM = 'dados_originais/hsl_lab_result_1.csv'
-# ---- Auxiliary Functions ----------------------
 
 
-def is_float_try(entry):
-    '''
-    Simple function that checks if _entry_ can be parsed into a float.
-    '''
-    try:
-        float(entry.replace(',', '.'))
-        return True
-    except ValueError:
-        return False
+# ---- Pacient Processing ----------------------
+
+def join_pacientes():
+
+    print("Starting processing patients")
+
+    # read csv files
+    einstein_p = pd.read_csv(E_PAC, sep='|')
+    fleury_p = pd.read_csv(F_PAC, sep='|')
+    hsl_p = pd.read_csv(H_PAC, sep='|')
+
+    # padronize columns
+    fleury_p.columns = einstein_p.columns
+    hsl_p['Hospital'] = 'HSL'
+    einstein_p['Hospital'] = 'Einstein'
+    fleury_p['Hospital'] = 'Fleury'
+
+    pacientes = pd.concat([einstein_p, fleury_p, hsl_p])
+    pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
+                         'Município', 'CEP', 'Hospital']
+
+    pacientes.to_csv(PAC_DATA, mode='w+', index=False,
+                     columns=['ID_Paciente', 'Sexo',
+                              'Ano_Nascimento', 'Hospital'])
+    print("Finished writing pacientes.csv")
+
+
+# ---- Exam Processing ----------------------
 
 
 def fix_encoding(entry):
     '''
-    Auxiliary function that deals with some enconding issus in _entry_.
+    Auxiliary function that deals with some enconding issues in _entry_.
     '''
     if type(entry) != str:
         return entry
@@ -67,22 +85,20 @@ def split_exam(exam, analito_matches, names):
     exam['Exame'] = float('nan')
     return exam
 
-# ---- Join Data Functions ----------------------
-
 
 def join_exames():
 
     print("Starting processing exames")
 
-    fleury_e_big = pd.read_csv(F_EXAM, sep='|', encoding='latin1')
-    einstein_e_big = pd.read_csv(E_EXAM, sep='|')
-    hsl_e_big = pd.read_csv(H_EXAM, sep='|')
+    fleury_e = pd.read_csv(F_EXAM, sep='|', encoding='latin1')
+    einstein_e = pd.read_csv(E_EXAM, sep='|')
+    hsl_e = pd.read_csv(H_EXAM, sep='|')
 
-    einstein_e_big.columns = fleury_e_big.columns
-    hsl_e_big['Hospital'] = 'HSL'
-    einstein_e_big['Hospital'] = 'Einstein'
-    fleury_e_big['Hospital'] = 'Fleury'
-    exames = pd.concat([einstein_e_big, fleury_e_big, hsl_e_big])
+    einstein_e.columns = fleury_e.columns
+    hsl_e['Hospital'] = 'HSL'
+    einstein_e['Hospital'] = 'Einstein'
+    fleury_e['Hospital'] = 'Fleury'
+    exames = pd.concat([einstein_e, fleury_e, hsl_e])
 
     exames.columns = ['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                       'Analito', 'Resultado', 'Unidade', 'Valor_Referencia',
@@ -197,33 +213,19 @@ def join_exames():
 
     print("Finished writing exames.csv")
 
-
-def join_pacientes():
-
-    print("Starting processing patients")
-
-    # read csv files
-    einstein_p_big = pd.read_csv(E_PAC, sep='|')
-    fleury_p_big = pd.read_csv(F_PAC, sep='|')
-    hsl_p_big = pd.read_csv(H_PAC, sep='|')
-
-    # padronize columns
-    fleury_p_big.columns = einstein_p_big.columns
-    hsl_p_big['Hospital'] = 'HSL'
-    einstein_p_big['Hospital'] = 'Einstein'
-    fleury_p_big['Hospital'] = 'Fleury'
-
-    pacientes = pd.concat([einstein_p_big, fleury_p_big, hsl_p_big])
-    pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
-                         'Município', 'CEP', 'Hospital']
-
-    pacientes.to_csv(PAC_DATA, mode='w+', index=False,
-                     columns=['ID_Paciente', 'Sexo',
-                              'Ano_Nascimento', 'Hospital'])
-    print("Finished writing pacientes.csv")
+# ---- NN Input Processing -----------------
 
 
-# ---- Input Creation Functions -----------------
+def is_float_try(entry):
+    '''
+    Simple function that checks if _entry_ can be parsed into a float.
+    '''
+    try:
+        float(entry.replace(',', '.'))
+        return True
+    except ValueError:
+        return False
+
 
 def pac_dict(filename=PAC_DATA):
     '''
@@ -371,6 +373,6 @@ def create_input():
 
 if __name__ == "__main__":
 
-    # join_pacientes()
-    # join_exames()
+    join_pacientes()
+    join_exames()
     create_input()
