@@ -170,13 +170,13 @@ def join_exames():
 
     exames = exames.dropna(subset=['Exame'])
 
-    exames = filter_exam_types(exames)
-
-    print("Filtered exam types")
-
     exames = exames.applymap(fix_encoding)
 
     print("Fixed enconding in Exames")
+
+    exames = filter_exam_types(exames)
+
+    print("Filtered exam types")
 
     exames = join_exam_types(exames)
 
@@ -185,35 +185,27 @@ def join_exames():
     conditions = [
         (exames.Exame.str.match('COVID19 IgG IgM') == True),
         (exames.Exame.str.match('COVID19 IgA IgG') == True),
-        ((exames.Exame == 'Hemograma Contagem Auto')
-         | (exames.Exame == 'HEMOGRAMA, sangue total'))
+        ((exames.Exame == 'Hemograma Contagem Auto') |
+         (exames.Exame == 'HEMOGRAMA, sangue total'))
     ]
 
     args = [
-        [['IgG', 'IgM'],
-         ['COVID19 IgG',
-          'COVID19 IgM']],
-        [['IgA e IgG', 'IgA', 'IgG'],
-         [None,
-          'COVID19 IgA',
-          'COVID19 IgG']],
-        [['Linfócitos',
-            'Basófilos',
-          'Neutrófilos',
-          'Monócitos',
-          'Eosinófilos'],
-         ['Linfócitos',
-            'Basófilos',
-          'Neutrófilos',
-          'Monócitos',
-          'Eosinófilos']]
+        [
+            ['IgG',          'IgM'],
+            ['COVID19 IgG', 'COVID19 IgM']
+        ],
+        [
+            ['IgA e IgG', 'IgA',        'IgG'],
+            [None,   'COVID19 IgA', 'COVID19 IgG']
+        ],
+        [
+            ['Linfócitos', 'Basófilos', 'Neutrófilos', 'Monócitos', 'Eosinófilos'],
+            ['Linfócitos', 'Basófilos', 'Neutrófilos', 'Monócitos', 'Eosinófilos']
+        ]
     ]
 
     for cond, args in zip(conditions, args):
-
-        exames.loc[cond] = exames[cond].apply(
-            split_exam, axis=1,
-            args=args)
+        exames.loc[cond] = exames[cond].apply(split_exam, axis=1, args=args)
 
     exames = exames.dropna(subset=['Exame'])
 
