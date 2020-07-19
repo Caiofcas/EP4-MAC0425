@@ -69,31 +69,26 @@ def join_exames():
     print("Joined Exames")
     exames = exames.dropna(subset=['Exame'])
 
-    aux1 = ((exames.Exame == 'HEMOGRAMA, sangue total') & (
+    cond1 = (
+        (exames.Exame == 'HEMOGRAMA, sangue total') & (
             (exames.Analito == 'Linfócitos (%)') |
             (exames.Analito == 'Basófilos (%)') |
             (exames.Analito == 'Neutrófilos (%)') |
             (exames.Analito == 'Monócitos (%)') |
             (exames.Analito == 'Eosinófilos (%)')
-            )
-            )
+        ))
 
-    aux2 = ((exames.Exame == 'Hemograma Contagem Auto') & (
+    cond2 = (
+        (exames.Exame == 'Hemograma Contagem Auto') & (
             (exames.Analito == 'Linfócitos') |
             (exames.Analito == 'Basófilos') |
             (exames.Analito == 'Neutrófilos') |
             (exames.Analito == 'Monócitos') |
             (exames.Analito == 'Eosinófilos')
-            ))
+        ))
     # Only takes exams related with COVID19
-    cond = (exames.Exame.str.match(
-        '.*(COVID|SARS-CoV-2).*') == True) | aux1 | aux2
-
-    # print('Auxiliary ops')
-    # df = exames[aux1]
-    # print(df.describe())
-    # df = exames[aux2]
-    # print(df.describe())
+    cond3 = (exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
+    cond = cond3 | aux1 | aux2
 
     exames = exames[cond]
 
@@ -136,33 +131,38 @@ def join_exames():
 
     cond = exames.Exame.str.match('COVID19 IgG IgM') == True
 
-    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
-                                          args=[['IgG', 'IgM'],
-                                                ['COVID19 IgG',
-                                                 'COVID19 IgM']])
+    exames.loc[cond] = exames[cond].apply(
+        split_exam, axis=1,
+        args=[['IgG', 'IgM'],
+              ['COVID19 IgG',
+               'COVID19 IgM']]
+    )
 
     cond = exames.Exame.str.match('COVID19 IgA IgG') == True
 
-    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
-                                          args=[['IgA e IgG', 'IgA', 'IgG'],
-                                                [None,
-                                                 'COVID19 IgA',
-                                                 'COVID19 IgG']])
+    exames.loc[cond] = exames[cond].apply(
+        split_exam, axis=1,
+        args=[['IgA e IgG', 'IgA', 'IgG'],
+              [None,
+               'COVID19 IgA',
+               'COVID19 IgG']]
+    )
 
-    cond = (exames.Exame == 'Hemograma Contagem Auto') | (
-        exames.Exame == 'HEMOGRAMA, sangue total')
+    cond = (exames.Exame == 'Hemograma Contagem Auto') \
+        | (exames.Exame == 'HEMOGRAMA, sangue total')
 
-    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
-                                          args=[['Linfócitos',
-                                                 'Basófilos',
-                                                 'Neutrófilos',
-                                                 'Monócitos',
-                                                 'Eosinófilos'],
-                                                ['Linfócitos',
-                                                 'Basófilos',
-                                                 'Neutrófilos',
-                                                 'Monócitos',
-                                                 'Eosinófilos']])
+    exames.loc[cond] = exames[cond].apply(
+        split_exam, axis=1,
+        args=[['Linfócitos',
+               'Basófilos',
+               'Neutrófilos',
+               'Monócitos',
+               'Eosinófilos'],
+              ['Linfócitos',
+               'Basófilos',
+               'Neutrófilos',
+               'Monócitos',
+               'Eosinófilos']])
 
     # exames = exames[exames.Exame != None]
     exames = exames.dropna(subset=['Exame'])
@@ -247,20 +247,6 @@ def exam_dict(filename="dados/exames.csv"):
     return d
 
 
-def get_fields(exames):
-
-    fields = ["ID_Paciente", "Sexo", "Ano_Nasc"]
-    for name in exames:
-        fields += ['['+name+']_analito',
-                   '['+name+']_resultado',
-                   '['+name+']_unidade',
-                   '['+name+']_datacol',
-                   '['+name+']_valref'
-                   ]
-
-    return fields
-
-
 def get_pac_row(info, exams):
     res2num = {
         'POSITIVO': 1,
@@ -336,10 +322,6 @@ def create_input():
 
     print("Processed exames")
 
-    # Constroi fields
-
-    # fields = get_fields(exames_dict['fields'])
-
     # Construct data
 
     new_rows = []
@@ -362,5 +344,5 @@ def create_input():
 if __name__ == "__main__":
 
     # join_pacientes()
-    join_exames()
-    # create_input()
+    # join_exames()
+    create_input()
