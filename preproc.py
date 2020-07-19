@@ -86,48 +86,91 @@ def split_exam(exam, analito_matches, names):
     return exam
 
 
+def filter_exam_types(df):
+
+    blood_A = (
+        (df.Exame == 'HEMOGRAMA, sangue total') & (
+            (df.Analito == 'Linfócitos (%)') |
+            (df.Analito == 'Basófilos (%)') |
+            (df.Analito == 'Neutrófilos (%)') |
+            (df.Analito == 'Monócitos (%)') |
+            (df.Analito == 'Eosinófilos (%)')
+        ))
+
+    blood_B = (
+        (df.Exame == 'Hemograma Contagem Auto') & (
+            (df.Analito == 'Linfócitos') |
+            (df.Analito == 'Basófilos') |
+            (df.Analito == 'Neutrófilos') |
+            (df.Analito == 'Monócitos') |
+            (df.Analito == 'Eosinófilos')
+        ))
+
+    covid = (df.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
+
+    return df[blood_A | blood_B | covid]
+
+
+def join_exam_types(df):
+    cond_igg_igm = (
+        (df.Exame == 'COVID-19-Teste Rápido (IgM e IgG), soro')
+        | (df.Exame == 'Teste rápido COVID19 IgG/IgM')
+        | (df.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM')
+        | (df.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO')
+        | (df.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM')
+        | (df.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro')
+    )
+
+    cond_iga_igg = (df.Exame == 'COVID-19, anticorpos IGA e IGG, soro')
+
+    cond_igg = (df.Exame == 'COVID19, ANTICORPOS IgG, soro')
+    cond_igm = (df.Exame == 'COVID19, ANTICORPOS IgM, soro')
+    cond_iga = (
+        (df.Exame == 'COVID19, ANTICORPOS IgA, soro') |
+        (df.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19')
+    )
+
+    cond_pcr = (
+        (df.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
+        (df.Exame == 'HMVSC-AFIP PCR COVID 19') |
+        (df.Exame == 'COVID-19-PCR para SARS-COV-2, Vários Materiais (Fleury)')
+    )
+
+    df.loc[cond_igg_igm, 'Exame'] = 'COVID19 IgG IgM'
+    df.loc[cond_iga_igg, 'Exame'] = 'COVID19 IgA IgG'
+    df.loc[cond_pcr, 'Exame'] = 'COVID19 PCR'
+    df.loc[cond_igg, 'Exame'] = 'COVID19 IgG'
+    df.loc[cond_iga, 'Exame'] = 'COVID19 IgA'
+    df.loc[cond_igm, 'Exame'] = 'COVID19 IgM'
+    return df
+
+
 def join_exames():
 
     print("Starting processing exames")
 
+    # read csv files
     fleury_e = pd.read_csv(F_EXAM, sep='|', encoding='latin1')
     einstein_e = pd.read_csv(E_EXAM, sep='|')
     hsl_e = pd.read_csv(H_EXAM, sep='|')
 
+    # padronize columns
     einstein_e.columns = fleury_e.columns
     hsl_e['Hospital'] = 'HSL'
     einstein_e['Hospital'] = 'Einstein'
     fleury_e['Hospital'] = 'Fleury'
+
     exames = pd.concat([einstein_e, fleury_e, hsl_e])
+
+    print("Joined Exames")
 
     exames.columns = ['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                       'Analito', 'Resultado', 'Unidade', 'Valor_Referencia',
                       'Hospital', 'ID_Atendimento']
-    print("Joined Exames")
+
     exames = exames.dropna(subset=['Exame'])
 
-    cond1 = (
-        (exames.Exame == 'HEMOGRAMA, sangue total') & (
-            (exames.Analito == 'Linfócitos (%)') |
-            (exames.Analito == 'Basófilos (%)') |
-            (exames.Analito == 'Neutrófilos (%)') |
-            (exames.Analito == 'Monócitos (%)') |
-            (exames.Analito == 'Eosinófilos (%)')
-        ))
-
-    cond2 = (
-        (exames.Exame == 'Hemograma Contagem Auto') & (
-            (exames.Analito == 'Linfócitos') |
-            (exames.Analito == 'Basófilos') |
-            (exames.Analito == 'Neutrófilos') |
-            (exames.Analito == 'Monócitos') |
-            (exames.Analito == 'Eosinófilos')
-        ))
-
-    cond3 = (exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
-    cond = cond3 | aux1 | aux2
-
-    exames = exames[cond]
+    exames = filter_exam_types(exames)
 
     print("Filtered exam types")
 
@@ -135,73 +178,43 @@ def join_exames():
 
     print("Fixed enconding in Exames")
 
-    exames.loc[(exames.Exame == 'COVID-19-Teste Rápido (IgM e IgG), soro') |
-               (exames.Exame == 'Teste rápido COVID19 IgG/IgM') |
-               (exames.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM') |
-               (exames.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO'),
-               'Exame'] = 'COVID19 IgG IgM'
+    exames = join_exam_types(exames)
 
-    exames.loc[(exames.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
-               (exames.Exame == 'HMVSC-AFIP PCR COVID 19') |
-               (exames.Exame == 'COVID-19-PCR para SARS-COV-2, Vários Materiais (Fleury)'),
-               'Exame'] = 'COVID19 PCR'
-
-    exames.loc[(exames.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM') |
-               (exames.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro'),
-               'Exame'] = 'COVID19 IgG IgM'
-
-    exames.loc[(exames.Exame == 'COVID-19, anticorpos IGA e IGG, soro'),
-               'Exame'] = 'COVID19 IgA IgG'
-
-    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgG, soro'),
-               'Exame'] = 'COVID19 IgG'
-
-    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgA, soro') |
-               (exames.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19'),
-               'Exame'] = 'COVID19 IgA'
-
-    exames.loc[exames.Exame == 'COVID19, ANTICORPOS IgM, soro',
-               'Exame'] = 'COVID19 IgM'
-
-    # quase certeza que isso tá escrito errado
     print("Standartized exam types")
 
-    cond = exames.Exame.str.match('COVID19 IgG IgM') == True
+    conditions = [
+        (exames.Exame.str.match('COVID19 IgG IgM') == True),
+        (exames.Exame.str.match('COVID19 IgA IgG') == True),
+        ((exames.Exame == 'Hemograma Contagem Auto')
+         | (exames.Exame == 'HEMOGRAMA, sangue total'))
+    ]
 
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['IgG', 'IgM'],
-              ['COVID19 IgG',
-               'COVID19 IgM']]
-    )
+    args = [
+        [['IgG', 'IgM'],
+         ['COVID19 IgG',
+          'COVID19 IgM']],
+        [['IgA e IgG', 'IgA', 'IgG'],
+         [None,
+          'COVID19 IgA',
+          'COVID19 IgG']],
+        [['Linfócitos',
+            'Basófilos',
+          'Neutrófilos',
+          'Monócitos',
+          'Eosinófilos'],
+         ['Linfócitos',
+            'Basófilos',
+          'Neutrófilos',
+          'Monócitos',
+          'Eosinófilos']]
+    ]
 
-    cond = exames.Exame.str.match('COVID19 IgA IgG') == True
+    for cond, args in zip(conditions, args):
 
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['IgA e IgG', 'IgA', 'IgG'],
-              [None,
-               'COVID19 IgA',
-               'COVID19 IgG']]
-    )
+        exames.loc[cond] = exames[cond].apply(
+            split_exam, axis=1,
+            args=args)
 
-    cond = (exames.Exame == 'Hemograma Contagem Auto') \
-        | (exames.Exame == 'HEMOGRAMA, sangue total')
-
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['Linfócitos',
-               'Basófilos',
-               'Neutrófilos',
-               'Monócitos',
-               'Eosinófilos'],
-              ['Linfócitos',
-               'Basófilos',
-               'Neutrófilos',
-               'Monócitos',
-               'Eosinófilos']])
-
-    # exames = exames[exames.Exame != None]
     exames = exames.dropna(subset=['Exame'])
 
     print("Split compounded Exams")
