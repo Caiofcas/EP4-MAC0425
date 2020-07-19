@@ -293,8 +293,7 @@ def exam_dict(filename=EXM_DATA):
 def get_pac_row(info, exams):
     res2num = {
         'POSITIVO': 1,
-        'INCONCLUSIVO': 0,
-        'NEGATIVO': -1
+        'NEGATIVO': 0
     }
     row = {}
     row['Sexo'] = info[0]
