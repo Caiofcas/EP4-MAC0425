@@ -8,10 +8,9 @@ import matplotlib.pyplot as plt
 
 debug = False
 
-input_size = 10
 input_df = pd.read_csv('dados/input.csv')
 
-cols = ['Sexo', 'COVID19 IgG BOOL', 'COVID19 IgG NUM']
+cols = ['Sexo', 'COVID19 IgG BOOL', 'COVID19 IgG NUM', 'Monócitos NUM', 'Neutrófilos NUM', 'Eosinófilos NUM', 'Basófilos NUM']
 igg_df = input_df[cols]
 igg_df = igg_df.dropna(how='any')
 igg_df = igg_df.reset_index(drop=True)
