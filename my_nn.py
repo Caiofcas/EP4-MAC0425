@@ -6,8 +6,7 @@ class Net_2hl(nn.Module):
         super(Net_2hl, self).__init__()
         self.hl1 = nn.Linear(n_features, n_hl1)
         self.hl2 = nn.Linear(n_hl1, n_hl2)
-        self.output_layer = nn.Linear(n_hl2, 3) #Tres possiveis saidas: classificação
-        # em positivo, negativo ou indeterminado
+        self.output_layer = nn.Linear(n_hl2, 1)
 
     def forward(self, x):
         h1 = F.relu(self.hl1(x))
