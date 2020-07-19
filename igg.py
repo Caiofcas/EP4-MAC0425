@@ -22,16 +22,12 @@ if debug:
     sns.countplot(x = 'COVID19 IgG BOOL', data=igg_df) # HAHHAHHAHAHAAHA
     plt.show()
 
-X  = igg_df[['Sexo', 'COVID19 IgG NUM']]
-X = torch.from_numpy(X.values).float()
+X  = ['Sexo', 'COVID19 IgG NUM', 'Monócitos NUM', 'Neutrófilos NUM', 'Eosinófilos NUM', 'Basófilos NUM']
 
-Y = igg_df[['COVID19 IgG BOOL']]
-Y = torch.from_numpy(Y.values)
+Y = ['COVID19 IgG BOOL']
 
-input_size = X.shape[1]
+input_size = len(X)
 
 igg_net = my_nn.Net_2hl(input_size, 128, 128)
-output = igg_net(X)
-print(output)
-
-
+treinamento = train.Train(igg_net, lr=0.01, X=X, Y=Y, epochs=1000, df=igg_df)
+treinamento.train()
