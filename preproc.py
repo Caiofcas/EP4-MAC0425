@@ -8,6 +8,9 @@ Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 
 
 def is_float_try(entry):
+    '''
+    Simple function that checks if _entry_ can be parsed into a float.
+    '''
     try:
         float(entry.replace(',', '.'))
         return True
@@ -15,11 +18,14 @@ def is_float_try(entry):
         return False
 
 
-def fix_encoding(string):
-    if type(string) != str:
-        return string
+def fix_encoding(entry):
+    '''
+    Auxiliary function that deals with some enconding issus in _entry_.
+    '''
+    if type(entry) != str:
+        return entry
 
-    return string \
+    return entry \
         .replace('ĂĄ', 'á') \
         .replace('ĂŞ', 'ê') \
         .replace('Ăł', 'ó') \
@@ -34,14 +40,19 @@ def fix_encoding(string):
         .replace('í­', 'í')  # Tem um caracter escondido aqui
 
 
-def split_exam(row, analito_options, new_exams):
-    for i in range(len(analito_options)):
-        if analito_options[i] in row['Analito']:
-            row['Exame'] = new_exams[i]
+def split_exam(exam, analito_matches, names):
+    '''
+    Changes _exam_ 'Exame' field based on which str present in _analito_matches_
+    is contained in _exam_ 'Analito' field. If there is no match the value is set
+    to NaN to allow data filtering.
+    '''
+    for i in range(len(analito_matches)):
+        if analito_matches[i] in exam['Analito']:
+            exam['Exame'] = names[i]
             return row
 
-    row['Exame'] = None
-    return row
+    exam['Exame'] = float('nan')
+    return exam
 
 # ---- Join Data Functions ----------------------
 
@@ -207,6 +218,11 @@ def join_pacientes():
 # ---- Input Creation Functions -----------------
 
 def pac_dict(filename="dados/pacientes.csv"):
+    '''
+    Create and return a dict representation of _filename_ where:
+        KEY: ID_PACIENTE
+        VAL: (SEXO,ANO_NASCIMENTO)
+    '''
     df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
@@ -218,6 +234,11 @@ def pac_dict(filename="dados/pacientes.csv"):
 
 
 def exam_dict(filename="dados/exames.csv"):
+    '''
+    Create and return a dict representation of _filename_ where:
+        KEY: ID_PACIENTE
+        VAL: list of -Exame- namedtuples
+    '''
     df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
@@ -243,7 +264,6 @@ def exam_dict(filename="dados/exames.csv"):
         d[row['ID_Paciente']] = val
 
         # gambiarration
-    d['fields'] = df.Exame.unique()
     return d
 
 
