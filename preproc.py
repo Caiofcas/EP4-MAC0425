@@ -69,8 +69,33 @@ def join_exames():
     print("Joined Exames")
     exames = exames.dropna(subset=['Exame'])
 
+    aux1 = ((exames.Exame == 'HEMOGRAMA, sangue total') & (
+            (exames.Analito == 'Linfócitos (%)') |
+            (exames.Analito == 'Basófilos (%)') |
+            (exames.Analito == 'Neutrófilos (%)') |
+            (exames.Analito == 'Monócitos (%)') |
+            (exames.Analito == 'Eosinófilos (%)')
+            )
+            )
+
+    aux2 = ((exames.Exame == 'Hemograma Contagem Auto') & (
+            (exames.Analito == 'Linfócitos') |
+            (exames.Analito == 'Basófilos') |
+            (exames.Analito == 'Neutrófilos') |
+            (exames.Analito == 'Monócitos') |
+            (exames.Analito == 'Eosinófilos')
+            ))
     # Only takes exams related with COVID19
-    exames = exames[exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True]
+    cond = (exames.Exame.str.match(
+        '.*(COVID|SARS-CoV-2).*') == True) | aux1 | aux2
+
+    # print('Auxiliary ops')
+    # df = exames[aux1]
+    # print(df.describe())
+    # df = exames[aux2]
+    # print(df.describe())
+
+    exames = exames[cond]
 
     print("Filtered exam types")
 
@@ -123,6 +148,21 @@ def join_exames():
                                                 [None,
                                                  'COVID19 IgA',
                                                  'COVID19 IgG']])
+
+    cond = (exames.Exame == 'Hemograma Contagem Auto') | (
+        exames.Exame == 'HEMOGRAMA, sangue total')
+
+    exames.loc[cond] = exames[cond].apply(split_exam, axis=1,
+                                          args=[['Linfócitos',
+                                                 'Basófilos',
+                                                 'Neutrófilos',
+                                                 'Monócitos',
+                                                 'Eosinófilos'],
+                                                ['Linfócitos',
+                                                 'Basófilos',
+                                                 'Neutrófilos',
+                                                 'Monócitos',
+                                                 'Eosinófilos']])
 
     # exames = exames[exames.Exame != None]
     exames = exames.dropna(subset=['Exame'])
@@ -318,6 +358,6 @@ def create_input():
 
 if __name__ == "__main__":
 
-    join_pacientes()
+    # join_pacientes()
     join_exames()
-    create_input()
+    # create_input()
