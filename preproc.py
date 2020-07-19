@@ -272,36 +272,39 @@ def get_pac_row(info, exams):
     row['Ano_Nasc'] = info[1]
 
     for ex in exams:
-        print(ex.nome)
         if is_float_try(ex.resultado):
             key = ex.nome + ' NUM'
-            row[key] = float(ex.resultado)
+            row[key] = float(ex.resultado.replace(',', '.'))
         else:
             key = ex.nome + ' BOOL'
-            row[key] = res2num.setdefault(exam_result(ex.resultado), 'XXXX')
+            row[key] = res2num.setdefault(
+                exam_result(ex.resultado), float('nan'))
 
     return row
 
 
 def exam_result(resultado):
-    #     print(exam)
     DEBUG = False
     res = 'xxxxx'
-    matchNegativo = r'negativo|não|fraco|sem evidência|indetectável'
-    # Esse caso ta pegando aquele textão absurdo, melhor filtrar
-    matchInconclusivo = r'indeterminado|inconclusivo|repetir o teste|aguardar|a critério|possível'
-    matchPositivo = r'reagente|detectado.*|detectável|evidência'
-    matchNumerico = r'(\d)+(,|\.)(\d)+'
-    matchLixo = r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}'
+    matchNegativo = re.compile(
+        r'negativo|não|fraco|sem evidência|indetectável', re.IGNORECASE)
+    matchInconclusivo = re.compile(
+        r'indeterminado|inconclusivo|repetir o teste|aguardar|a critério|possível',
+        re.IGNORECASE)
+    matchPositivo = re.compile(
+        r'reagente|detectado.*|detectável|evidência', re.IGNORECASE)
+    matchNumerico = re.compile(r'(\d)+(,|\.)(\d)+', re.IGNORECASE)
+    matchLixo = re.compile(
+        r'swab|raspado|nasofaringe|laringe|plasma|bronquico|sangue|secreção|traqueal|Nova Coleta|soro|liquor|trato respiratório|lavado|(\*)+|( ){2,}',
+        re.IGNORECASE)
     tests = (['INCONCLUSIVO', matchInconclusivo], ['NEGATIVO', matchNegativo],
              ['POSITIVO', matchPositivo], ['numerico', matchNumerico],
              ['lixo', matchLixo])
 
     for test in tests:
-        regexResultado = re.search(test[1], resultado, flags=re.IGNORECASE)
+        regexResultado = test[1].search(resultado)
         if regexResultado is not None:
-            if test[0] != 'lixo' and test[1] != 'numerico':
-                res = test[0]
+            res = test[0]
             if DEBUG:
                 try:
                     file_to_open = test[0] + ".txt"
@@ -313,7 +316,7 @@ def exam_result(resultado):
                     print('erro na hora de abrir o arquivo')
             break  # Interrompe os testes por ter classificado a palavra
 
-    print('Palavra {} classificada como {}'.format(resultado, res))
+    # print('Palavra {} classificada como {}'.format(resultado, res))
     return res
 
 
@@ -350,8 +353,8 @@ def create_input():
 
     print("Joined data")
 
-    pd.DataFrame(new_rows).to_csv(
-        'dados/input.csv', mode='w+', index=False)
+    pd.DataFrame(new_rows).dropna(how='all', axis=1).to_csv(
+        'dados/input.csv', mode='w+')
 
     print("Finished writing input.csv")
 
