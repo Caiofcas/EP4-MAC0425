@@ -2,24 +2,61 @@ import pandas as pd
 from collections import namedtuple
 import re
 
+# ---- Definitions ------------------------------
+
 Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 
-# ---- Auxiliary Functions ----------------------
+PAC_DATA = 'dados/pacientes.csv'
+EXM_DATA = 'dados/exames.csv'
+INP_DATA = 'dados/input.csv'
+
+F_PAC = 'dados_originais/Grupo_Fleury_Dataset_Covid19_Pacientes.csv'
+E_PAC = 'dados_originais/einstein_full_dataset_paciente.csv'
+H_PAC = 'dados_originais/hsl_patient_1.csv'
+
+F_EXAM = 'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv'
+E_EXAM = 'dados_originais/einstein_full_dataset_exames.csv'
+H_EXAM = 'dados_originais/hsl_lab_result_1.csv'
 
 
-def is_float_try(entry):
-    try:
-        float(entry.replace(',', '.'))
-        return True
-    except ValueError:
-        return False
+# ---- Pacient Processing ----------------------
+
+def join_pacientes():
+
+    print("Starting processing patients")
+
+    # read csv files
+    einstein_p = pd.read_csv(E_PAC, sep='|')
+    fleury_p = pd.read_csv(F_PAC, sep='|')
+    hsl_p = pd.read_csv(H_PAC, sep='|')
+
+    # padronize columns
+    fleury_p.columns = einstein_p.columns
+    hsl_p['Hospital'] = 'HSL'
+    einstein_p['Hospital'] = 'Einstein'
+    fleury_p['Hospital'] = 'Fleury'
+
+    pacientes = pd.concat([einstein_p, fleury_p, hsl_p])
+    pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
+                         'Município', 'CEP', 'Hospital']
+
+    pacientes.to_csv(PAC_DATA, mode='w+', index=False,
+                     columns=['ID_Paciente', 'Sexo',
+                              'Ano_Nascimento', 'Hospital'])
+    print("Finished writing pacientes.csv")
 
 
-def fix_encoding(string):
-    if type(string) != str:
-        return string
+# ---- Exam Processing ----------------------
 
-    return string \
+
+def fix_encoding(entry):
+    '''
+    Auxiliary function that deals with some enconding issues in _entry_.
+    '''
+    if type(entry) != str:
+        return entry
+
+    return entry \
         .replace('ĂĄ', 'á') \
         .replace('ĂŞ', 'ê') \
         .replace('Ăł', 'ó') \
@@ -34,63 +71,106 @@ def fix_encoding(string):
         .replace('í­', 'í')  # Tem um caracter escondido aqui
 
 
-def split_exam(row, analito_options, new_exams):
-    for i in range(len(analito_options)):
-        if analito_options[i] in row['Analito']:
-            row['Exame'] = new_exams[i]
-            return row
+def split_exam(exam, analito_matches, names):
+    '''
+    Changes _exam_ 'Exame' field based on which str present in _analito_matches_
+    is contained in _exam_ 'Analito' field. If there is no match the value is set
+    to NaN to allow data filtering.
+    '''
+    for i in range(len(analito_matches)):
+        if analito_matches[i] in exam['Analito']:
+            exam['Exame'] = names[i]
+            return exam
 
-    row['Exame'] = None
-    return row
+    exam['Exame'] = float('nan')
+    return exam
 
-# ---- Join Data Functions ----------------------
+
+def filter_exam_types(df):
+
+    blood_A = (
+        (df.Exame == 'HEMOGRAMA, sangue total') & (
+            (df.Analito == 'Linfócitos (%)') |
+            (df.Analito == 'Basófilos (%)') |
+            (df.Analito == 'Neutrófilos (%)') |
+            (df.Analito == 'Monócitos (%)') |
+            (df.Analito == 'Eosinófilos (%)')
+        ))
+
+    blood_B = (
+        (df.Exame == 'Hemograma Contagem Auto') & (
+            (df.Analito == 'Linfócitos') |
+            (df.Analito == 'Basófilos') |
+            (df.Analito == 'Neutrófilos') |
+            (df.Analito == 'Monócitos') |
+            (df.Analito == 'Eosinófilos')
+        ))
+
+    covid = (df.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
+
+    return df[blood_A | blood_B | covid]
+
+
+def join_exam_types(df):
+    cond_igg_igm = (
+        (df.Exame == 'COVID-19-Teste Rápido (IgM e IgG), soro')
+        | (df.Exame == 'Teste rápido COVID19 IgG/IgM')
+        | (df.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM')
+        | (df.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO')
+        | (df.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM')
+        | (df.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro')
+    )
+
+    cond_iga_igg = (df.Exame == 'COVID-19, anticorpos IGA e IGG, soro')
+
+    cond_igg = (df.Exame == 'COVID19, ANTICORPOS IgG, soro')
+    cond_igm = (df.Exame == 'COVID19, ANTICORPOS IgM, soro')
+    cond_iga = (
+        (df.Exame == 'COVID19, ANTICORPOS IgA, soro') |
+        (df.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19')
+    )
+
+    cond_pcr = (
+        (df.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
+        (df.Exame == 'HMVSC-AFIP PCR COVID 19') |
+        (df.Exame == 'COVID-19-PCR para SARS-COV-2, Vários Materiais (Fleury)')
+    )
+
+    df.loc[cond_igg_igm, 'Exame'] = 'COVID19 IgG IgM'
+    df.loc[cond_iga_igg, 'Exame'] = 'COVID19 IgA IgG'
+    df.loc[cond_pcr, 'Exame'] = 'COVID19 PCR'
+    df.loc[cond_igg, 'Exame'] = 'COVID19 IgG'
+    df.loc[cond_iga, 'Exame'] = 'COVID19 IgA'
+    df.loc[cond_igm, 'Exame'] = 'COVID19 IgM'
+    return df
 
 
 def join_exames():
 
     print("Starting processing exames")
 
-    fleury_e_big = pd.read_csv(
-        'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv',
-        sep='|', encoding='latin1')
-    einstein_e_big = pd.read_csv(
-        'dados_originais/einstein_full_dataset_exames.csv', sep='|')
-    hsl_e_big = pd.read_csv('dados_originais/hsl_lab_result_1.csv', sep='|')
+    # read csv files
+    fleury_e = pd.read_csv(F_EXAM, sep='|', encoding='latin1')
+    einstein_e = pd.read_csv(E_EXAM, sep='|')
+    hsl_e = pd.read_csv(H_EXAM, sep='|')
 
-    einstein_e_big.columns = fleury_e_big.columns
-    hsl_e_big['Hospital'] = 'HSL'
-    einstein_e_big['Hospital'] = 'Einstein'
-    fleury_e_big['Hospital'] = 'Fleury'
-    exames = pd.concat([einstein_e_big, fleury_e_big, hsl_e_big])
+    # padronize columns
+    einstein_e.columns = fleury_e.columns
+    hsl_e['Hospital'] = 'HSL'
+    einstein_e['Hospital'] = 'Einstein'
+    fleury_e['Hospital'] = 'Fleury'
+
+    exames = pd.concat([einstein_e, fleury_e, hsl_e])
+
+    print("Joined Exames")
 
     exames.columns = ['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                       'Analito', 'Resultado', 'Unidade', 'Valor_Referencia',
                       'Hospital', 'ID_Atendimento']
-    print("Joined Exames")
+
     exames = exames.dropna(subset=['Exame'])
 
-    cond1 = (
-        (exames.Exame == 'HEMOGRAMA, sangue total') & (
-            (exames.Analito == 'Linfócitos (%)') |
-            (exames.Analito == 'Basófilos (%)') |
-            (exames.Analito == 'Neutrófilos (%)') |
-            (exames.Analito == 'Monócitos (%)') |
-            (exames.Analito == 'Eosinófilos (%)')
-        ))
-
-    cond2 = (
-        (exames.Exame == 'Hemograma Contagem Auto') & (
-            (exames.Analito == 'Linfócitos') |
-            (exames.Analito == 'Basófilos') |
-            (exames.Analito == 'Neutrófilos') |
-            (exames.Analito == 'Monócitos') |
-            (exames.Analito == 'Eosinófilos')
-        ))
-    # Only takes exams related with COVID19
-    cond3 = (exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
-    cond = cond3 | aux1 | aux2
-
-    exames = exames[cond]
+    exames = filter_exam_types(exames)
 
     print("Filtered exam types")
 
@@ -98,115 +178,74 @@ def join_exames():
 
     print("Fixed enconding in Exames")
 
-    exames.loc[(exames.Exame == 'COVID-19-Teste Rápido (IgM e IgG), soro') |
-               (exames.Exame == 'Teste rápido COVID19 IgG/IgM') |
-               (exames.Exame == 'Teste rápido Coronavirus COVID19 IgG/IgM') |
-               (exames.Exame == 'SARS-CoV-2, ANTICORPOS IgM E IgG, TESTE RÁPIDO'),
-               'Exame'] = 'COVID19 IgG IgM'
+    exames = join_exam_types(exames)
 
-    exames.loc[(exames.Exame == 'NOVO CORONAVÍRUS 2019 (SARS-CoV-2), DETECÇÃO POR PCR') |
-               (exames.Exame == 'HMVSC-AFIP PCR COVID 19') |
-               (exames.Exame == 'COVID-19-PCR para SARS-COV-2, Vários Materiais (Fleury)'),
-               'Exame'] = 'COVID19 PCR'
-
-    exames.loc[(exames.Exame == 'Sorologia SARS-CoV-2/COVID19 IgG/IgM') |
-               (exames.Exame == 'COVID-19-Sorologia IgM e IgG por quimiluminescência, soro'),
-               'Exame'] = 'COVID19 IgG IgM'
-
-    exames.loc[(exames.Exame == 'COVID-19, anticorpos IGA e IGG, soro'),
-               'Exame'] = 'COVID19 IgA IgG'
-
-    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgG, soro'),
-               'Exame'] = 'COVID19 IgG'
-
-    exames.loc[(exames.Exame == 'COVID19, ANTICORPOS IgA, soro') |
-               (exames.Exame == 'Anticorpos IgA contra SARS-CoV-2/COVID19'),
-               'Exame'] = 'COVID19 IgA'
-
-    exames.loc[exames.Exame == 'COVID19, ANTICORPOS IgM, soro',
-               'Exame'] = 'COVID19 IgM'
-
-    # quase certeza que isso tá escrito errado
     print("Standartized exam types")
 
-    cond = exames.Exame.str.match('COVID19 IgG IgM') == True
+    conditions = [
+        (exames.Exame.str.match('COVID19 IgG IgM') == True),
+        (exames.Exame.str.match('COVID19 IgA IgG') == True),
+        ((exames.Exame == 'Hemograma Contagem Auto')
+         | (exames.Exame == 'HEMOGRAMA, sangue total'))
+    ]
 
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['IgG', 'IgM'],
-              ['COVID19 IgG',
-               'COVID19 IgM']]
-    )
+    args = [
+        [['IgG', 'IgM'],
+         ['COVID19 IgG',
+          'COVID19 IgM']],
+        [['IgA e IgG', 'IgA', 'IgG'],
+         [None,
+          'COVID19 IgA',
+          'COVID19 IgG']],
+        [['Linfócitos',
+            'Basófilos',
+          'Neutrófilos',
+          'Monócitos',
+          'Eosinófilos'],
+         ['Linfócitos',
+            'Basófilos',
+          'Neutrófilos',
+          'Monócitos',
+          'Eosinófilos']]
+    ]
 
-    cond = exames.Exame.str.match('COVID19 IgA IgG') == True
+    for cond, args in zip(conditions, args):
 
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['IgA e IgG', 'IgA', 'IgG'],
-              [None,
-               'COVID19 IgA',
-               'COVID19 IgG']]
-    )
+        exames.loc[cond] = exames[cond].apply(
+            split_exam, axis=1,
+            args=args)
 
-    cond = (exames.Exame == 'Hemograma Contagem Auto') \
-        | (exames.Exame == 'HEMOGRAMA, sangue total')
-
-    exames.loc[cond] = exames[cond].apply(
-        split_exam, axis=1,
-        args=[['Linfócitos',
-               'Basófilos',
-               'Neutrófilos',
-               'Monócitos',
-               'Eosinófilos'],
-              ['Linfócitos',
-               'Basófilos',
-               'Neutrófilos',
-               'Monócitos',
-               'Eosinófilos']])
-
-    # exames = exames[exames.Exame != None]
     exames = exames.dropna(subset=['Exame'])
 
     print("Split compounded Exams")
 
-    exames.to_csv('dados/exames.csv', mode='w+', index=False,
+    exames.to_csv(EXM_DATA, mode='w+', index=False,
                   columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                            'Analito', 'Resultado', 'Unidade',
                            'Valor_Referencia', 'Hospital'])
 
     print("Finished writing exames.csv")
 
-
-def join_pacientes():
-
-    print("Starting processing patients")
-
-    # read csv files
-    einstein_p_big = pd.read_csv(
-        'dados_originais/einstein_full_dataset_paciente.csv', sep='|')
-    fleury_p_big = pd.read_csv(
-        'dados_originais/Grupo_Fleury_Dataset_Covid19_Pacientes.csv', sep='|')
-    hsl_p_big = pd.read_csv('dados_originais/hsl_patient_1.csv', sep='|')
-
-    # padronize columns
-    fleury_p_big.columns = einstein_p_big.columns
-    hsl_p_big['Hospital'] = 'HSL'
-    einstein_p_big['Hospital'] = 'Einstein'
-    fleury_p_big['Hospital'] = 'Fleury'
-
-    pacientes = pd.concat([einstein_p_big, fleury_p_big, hsl_p_big])
-    pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
-                         'Município', 'CEP', 'Hospital']
-
-    pacientes.to_csv('dados/pacientes.csv', mode='w+', index=False,
-                     columns=['ID_Paciente', 'Sexo',
-                              'Ano_Nascimento', 'Hospital'])
-    print("Finished writing pacientes.csv")
+# ---- NN Input Processing -----------------
 
 
-# ---- Input Creation Functions -----------------
+def is_float_try(entry):
+    '''
+    Simple function that checks if _entry_ can be parsed into a float.
+    '''
+    try:
+        float(entry.replace(',', '.'))
+        return True
+    except ValueError:
+        return False
 
-def pac_dict(filename="dados/pacientes.csv"):
+
+def pac_dict(filename=PAC_DATA):
+    '''
+    Create and return a dict representation of _filename_ where:
+        KEY: ID_PACIENTE
+        VAL: (SEXO,ANO_NASCIMENTO)
+    '''
     df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
@@ -217,7 +256,12 @@ def pac_dict(filename="dados/pacientes.csv"):
     return d
 
 
-def exam_dict(filename="dados/exames.csv"):
+def exam_dict(filename=EXM_DATA):
+    '''
+    Create and return a dict representation of _filename_ where:
+        KEY: ID_PACIENTE
+        VAL: list of -Exame- namedtuples
+    '''
     df = pd.read_csv(filename)
     d = {}
     for _, row in df.iterrows():
@@ -243,7 +287,6 @@ def exam_dict(filename="dados/exames.csv"):
         d[row['ID_Paciente']] = val
 
         # gambiarration
-    d['fields'] = df.Exame.unique()
     return d
 
 
@@ -336,13 +379,13 @@ def create_input():
     print("Joined data")
 
     pd.DataFrame(new_rows).dropna(how='all', axis=1).to_csv(
-        'dados/input.csv', mode='w+')
+        INP_DATA, mode='w+')
 
     print("Finished writing input.csv")
 
 
 if __name__ == "__main__":
 
-    # join_pacientes()
-    # join_exames()
+    join_pacientes()
+    join_exames()
     create_input()
