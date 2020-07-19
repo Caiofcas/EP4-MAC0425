@@ -2,8 +2,21 @@ import pandas as pd
 from collections import namedtuple
 import re
 
+# ---- Definitions ------------------------------
+
 Exame = namedtuple('Exame', 'nome analito resultado unidade valref data')
 
+PAC_DATA = 'dados/pacientes.csv'
+EXM_DATA = 'dados/exames.csv'
+INP_DATA = 'dados/input.csv'
+
+F_PAC = 'dados_originais/Grupo_Fleury_Dataset_Covid19_Pacientes.csv'
+E_PAC = 'dados_originais/einstein_full_dataset_paciente.csv'
+H_PAC = 'dados_originais/hsl_patient_1.csv'
+
+F_EXAM = 'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv'
+E_EXAM = 'dados_originais/einstein_full_dataset_exames.csv'
+H_EXAM = 'dados_originais/hsl_lab_result_1.csv'
 # ---- Auxiliary Functions ----------------------
 
 
@@ -61,12 +74,9 @@ def join_exames():
 
     print("Starting processing exames")
 
-    fleury_e_big = pd.read_csv(
-        'dados_originais/Grupo_Fleury_Dataset_Covid19_Resultados_Exames.csv',
-        sep='|', encoding='latin1')
-    einstein_e_big = pd.read_csv(
-        'dados_originais/einstein_full_dataset_exames.csv', sep='|')
-    hsl_e_big = pd.read_csv('dados_originais/hsl_lab_result_1.csv', sep='|')
+    fleury_e_big = pd.read_csv(F_EXAM, sep='|', encoding='latin1')
+    einstein_e_big = pd.read_csv(E_EXAM, sep='|')
+    hsl_e_big = pd.read_csv(H_EXAM, sep='|')
 
     einstein_e_big.columns = fleury_e_big.columns
     hsl_e_big['Hospital'] = 'HSL'
@@ -97,7 +107,7 @@ def join_exames():
             (exames.Analito == 'Monócitos') |
             (exames.Analito == 'Eosinófilos')
         ))
-    # Only takes exams related with COVID19
+
     cond3 = (exames.Exame.str.match('.*(COVID|SARS-CoV-2).*') == True)
     cond = cond3 | aux1 | aux2
 
@@ -180,7 +190,7 @@ def join_exames():
 
     print("Split compounded Exams")
 
-    exames.to_csv('dados/exames.csv', mode='w+', index=False,
+    exames.to_csv(EXM_DATA, mode='w+', index=False,
                   columns=['ID_Paciente', 'Data_Coleta', 'Origem', 'Exame',
                            'Analito', 'Resultado', 'Unidade',
                            'Valor_Referencia', 'Hospital'])
@@ -193,11 +203,9 @@ def join_pacientes():
     print("Starting processing patients")
 
     # read csv files
-    einstein_p_big = pd.read_csv(
-        'dados_originais/einstein_full_dataset_paciente.csv', sep='|')
-    fleury_p_big = pd.read_csv(
-        'dados_originais/Grupo_Fleury_Dataset_Covid19_Pacientes.csv', sep='|')
-    hsl_p_big = pd.read_csv('dados_originais/hsl_patient_1.csv', sep='|')
+    einstein_p_big = pd.read_csv(E_PAC, sep='|')
+    fleury_p_big = pd.read_csv(F_PAC, sep='|')
+    hsl_p_big = pd.read_csv(H_PAC, sep='|')
 
     # padronize columns
     fleury_p_big.columns = einstein_p_big.columns
@@ -209,7 +217,7 @@ def join_pacientes():
     pacientes.columns = ['ID_Paciente', 'Sexo', 'Ano_Nascimento', 'País', 'UF',
                          'Município', 'CEP', 'Hospital']
 
-    pacientes.to_csv('dados/pacientes.csv', mode='w+', index=False,
+    pacientes.to_csv(PAC_DATA, mode='w+', index=False,
                      columns=['ID_Paciente', 'Sexo',
                               'Ano_Nascimento', 'Hospital'])
     print("Finished writing pacientes.csv")
@@ -217,7 +225,7 @@ def join_pacientes():
 
 # ---- Input Creation Functions -----------------
 
-def pac_dict(filename="dados/pacientes.csv"):
+def pac_dict(filename=PAC_DATA):
     '''
     Create and return a dict representation of _filename_ where:
         KEY: ID_PACIENTE
@@ -233,7 +241,7 @@ def pac_dict(filename="dados/pacientes.csv"):
     return d
 
 
-def exam_dict(filename="dados/exames.csv"):
+def exam_dict(filename=EXM_DATA):
     '''
     Create and return a dict representation of _filename_ where:
         KEY: ID_PACIENTE
@@ -356,7 +364,7 @@ def create_input():
     print("Joined data")
 
     pd.DataFrame(new_rows).dropna(how='all', axis=1).to_csv(
-        'dados/input.csv', mode='w+')
+        INP_DATA, mode='w+')
 
     print("Finished writing input.csv")
 
