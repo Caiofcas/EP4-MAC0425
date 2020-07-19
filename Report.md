@@ -1,11 +1,8 @@
-# Relatório
-
-(título?)
+# Relatório EP4 - MAC350
 
 ## Nome dos autores
 
 Caio Andrade    -  9797232
-
 Caio Fontes     - 10692061
 
 ## Resumo
@@ -14,17 +11,19 @@ Caio Fontes     - 10692061
 
 deve conter os seguintes elementos: motivação para o trabalho, contendo um ou dois parágrafos; objetivos do trabalho, contendo um parágrafo; estrutura do relatório a seguir, contém um parágrafo.
 
+
+
 ## Metodologia
 
 ### Pré-processamento dos Dados
 
-O pré-processamento é uma fase importantíssima que nem sempre recebe a devida atenção. No nosso caso, para ressaltar a importância dessa fase, metade da nota vai vir para processamento.
+O preprocessamento é realizado pelo arquivo _preproc.py_, ele assume que os arquivos originais estão em uma pasta _dados_originais_, e gera 3 arquivos dentro da pasta _dados_, _pacientes.csv_,_exames.csv_ e _input.csv_. Primeiramente realizamos uma unificação das diferentes bases de dados através das funções `join_pacientes()` e `join_exames()`. A unificação das bases de pacientes é bem simples e o código é autoexplicativo. A unificação das bases de exames possui alguns passos extras.
 
-Eu já dei uma pequena transformada e normalizada nos dados fornecidos, mas aqui vocês deverão fazer diversas outras atividades. Em particular vocês devem decidir quais serão os dados de entrada para rede neural, que devem ser resultados de exames. É importante notar que não há nenhuma garantia e que todos os pacientes tenham realizados os mesmos exames em todas as datas, então vocês devem indicar como estarão tratando dados inexistentes/ faltantes. É razoável que , tendo três fontes diferentes de exames,esses não tenham exatamente os mesmos nomes em todas as fontes, e é importante verificar se as unidades de resposta de cada um dos exames são as mesmas em todos as fontes.
+Primeiramente os dados das bases são unificados em uma maneira muito similar a da função `join_pacientes()`. Depois disso selecionamos apenas alguns tipos de exames com os quais iremos trabalhar, devido ao escopo enorme da base, esse processo é feito pela função `filter_exam_types()`. A função `join_exame_types()` recebe esse subconjunto de exames e realiza uma união de diversos tipos de exames que são equivalentes para os nossos propósitos, padronizando os valores do campo 'Exame'.
 
-Similarmente, é muito improvável que todos os pacientes tenham realizado os três exames de detecção de saída em todos os exames, então é importante dizer como você vai lidar se não houver algum dado de saída numa determinada instância. No entanto para não alongar muito esta parte do relatório, você não deve levar mais do que duas páginas nesta descrição. Use figuras se isto facilitar a explicação.
+Uma característica das bases disponibilizadas é que muitas vezes um exame possui muitos diferentes analitos, que efetivamente caracterizam um tipo diferente de dado. Realizamos mais uma etapa de processamento separando todos esses diferentes 'subexames', baseando-se no valor do campo Analito, utilizando a função _split_exam_ no laço da linha 207. Por fim salvamos esses  dados no arquivo _dados/exames.csv_.
 
-Esta fase de pré-processamento deverá produzir uma planilha (csv) ou o banco de dados (sql) que sirva de entrada para o treinamento da rede neural. Você deverá entregar tanto a planilha/ banco de dados quanto os programas em Python que foram utilizados para gerar esta planilha.
+Por fim a função `create_input()` realiza o processamento final dos dados, unificando as informações sobre os pacientes e seus respectivos exames no arquivo _input.csv_. 
 
 ### Arquitetura da Rede Neural
 
